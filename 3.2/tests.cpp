@@ -66,11 +66,41 @@ void Align() {
   for (int i = 0; i < n; ++i)
     ASSERT_EQUAL(B.at(0, i), output_B[i]);
 }
+
+void QuasiTriangulate() {
+  int n = 3;
+  double input_A[] = {3, 2, -5, 2, -1, 3, 1, 2, -1};
+  double s5 = sqrt(5);
+  double output_A[] = {3, 2, -5, s5, 0, s5, 0, s5, -s5};
+  Matrix A(n, n, input_A);
+  A.release();
+  Solver::QuasiTriangulate(A);
+  for (int i = 0; i < n; ++i)
+    for (int j = 0; j < n; ++j)
+      ASSERT_EQUAL(A.at(i, j), output_A[j * n + i]);
+}
+
+void Decompose() {
+  int n = 3;
+  double input_A[] = {3, 2, -5, 2, -1, 3, 1, 2, -1};
+  Matrix A(n, n, input_A);
+  A.release();
+  auto LR = Solver::DecomposeLR(A);
+  Matrix L(n, [&](int i, int j) { return i < j ? LR[{i, j}] : i == j; });
+  Matrix R(n, [&](int i, int j) { return i >= j ? LR[{i, j}] : 0.0; });
+  Matrix A2 = L * R;
+
+  for (int i = 0; i < n; ++i)
+    for (int j = 0; j < n; ++j)
+      ASSERT_EQUAL(A.at(i, j), A2.at(i, j));
+}
 } // namespace Test_Solver
 
 int main() {
   TestRunner tr;
   RUN_TEST(tr, Test_Solver::AlignRow);
   RUN_TEST(tr, Test_Solver::Align);
+  RUN_TEST(tr, Test_Solver::QuasiTriangulate);
+  RUN_TEST(tr, Test_Solver::Decompose);
   return 0;
 }
