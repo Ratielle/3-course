@@ -56,3 +56,30 @@ void Solver::Align(Matrix &A, Matrix *B) {
     }
   }
 }
+
+void Solver::QuasiTriangulate(Matrix &A, Matrix *B) {
+  int N = A.rows();
+  auto trimA = std::move(A.submat({0, 1}, {N - 1, N - 1}));
+  if (B) {
+    auto trimB = std::move(B->submat({0, 1}, {0, N - 1}));
+    Solver::Align(trimA, &trimB);
+  } else {
+    Solver::Align(trimA);
+  }
+}
+
+Matrix Solver::DecomposeLR(Matrix &A) {
+  Solver::QuasiTriangulate(A);
+  int N = A.rows();
+  Matrix LR = Matrix(N);
+  for (int i = 0; i < N; ++i)
+    LR[{i, 0}] = A[{i, 0}];
+  for (int i = 1; i < N; ++i) {
+    double &l = LR[{i - 1, i}];
+    l = A[{i - 1, i}] / LR[{i - 1, i - 1}];
+    for (int k = i; k < N; ++k)
+      LR[{k, i}] = A[{k, i}] - l * LR[{k, i - 1}];
+  }
+
+  return LR;
+}

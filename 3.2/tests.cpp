@@ -2,6 +2,8 @@
 #include "solver.h"
 #include "test_runner.h"
 
+#include <cmath>
+
 std::ostream &operator<<(std::ostream &os, const MatrixSize &s) {
   return os << "(" << s.col << ", " << s.row << ")";
 }
