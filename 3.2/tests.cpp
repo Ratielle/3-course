@@ -96,6 +96,28 @@ void Decompose() {
     for (int j = 0; j < n; ++j)
       ASSERT_EQUAL(A.at(i, j), A2.at(i, j));
 }
+
+void EigenValues() {
+  int n = 3;
+  {
+    double input_A[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    double output_v[] = {1, 1, 1};
+    Matrix A(n, n, input_A);
+    A.release();
+    auto v = Solver::EigenValues(A);
+    for (int i = 0; i < n; ++i)
+      ASSERT_EQUAL(v[i], output_v[i]);
+  }
+  {
+    double input_A[] = {5, 6, 3, -1, 0, 1, 1, 2, -1};
+    double output_v[] = {4, 2, -2};
+    Matrix A(n, n, input_A);
+    A.release();
+    auto v = Solver::EigenValues(A);
+    for (int i = 0; i < n; ++i)
+      ASSERT_EQUAL(v[i], output_v[i]);
+  }
+}
 } // namespace Test_Solver
 
 int main() {
@@ -104,5 +126,6 @@ int main() {
   RUN_TEST(tr, Test_Solver::Align);
   RUN_TEST(tr, Test_Solver::QuasiTriangulate);
   RUN_TEST(tr, Test_Solver::Decompose);
+  RUN_TEST(tr, Test_Solver::EigenValues);
   return 0;
 }
