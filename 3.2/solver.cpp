@@ -83,3 +83,23 @@ Matrix Solver::DecomposeLR(Matrix &A) {
 
   return LR;
 }
+
+std::vector<double> Solver::EigenValues(Matrix &A) {
+  int N = A.rows();
+  std::vector<double> values(N);
+
+  auto LR = Solver::DecomposeLR(A);
+  double diff = 1;
+  while (diff > 1e-7) {
+    diff = 0;
+    Matrix L(N, [&](int i, int j) { return i < j ? LR[{i, j}] : i == j; });
+    Matrix R(N, [&](int i, int j) { return i >= j ? LR[{i, j}] : 0.0; });
+    LR = R * L;
+    for (int i = 0; i < N; ++i) {
+      diff += std::abs(values[i] - LR[{i, i}]);
+      values[i] = LR[{i, i}];
+    }
+  }
+
+  return values;
+}
