@@ -131,6 +131,62 @@ void Muliply() {
   }
 }
 
+
+void Async() {
+  const int len = 40;
+  double input_A[len]{-6, -6, 5,  -7, 10, 8, -1, -2, 0,  1,  10, 4,  -6, -5,
+                      0,  1,  -2, -1, -1, 9, -1, -6, 7,  0,  -7, -2, 8,  5,
+                      0,  0,  4,  7,  2,  4, 9,  -6, -2, -9, -4, -5};
+  double input_B[len]{-1,  8, -8, 1,  -5, -2, -1, -1, 10, -2, -4,  -3, -7, 6,
+                      5,   7, 4,  9,  -1, -8, 5,  -7, -1, 9,  -10, -6, 8,  -10,
+                      -10, 6, 5,  -3, 0,  -2, -7, 2,  8,  -6, 5,   7};
+
+  double output[] = {-58, -104, -122, -27,  64,  -12,  -5, 15,  67,
+                     53,  137,  -38,  166,  10,  -140, 48, -14, 5,
+                     43,  60,   -74,  -125, -15, 157,  34};
+
+  int row = 5;
+  int col = len / row;
+  {
+    int n = row;
+    Matrix A(col, row, input_A);
+    A.release();
+    Matrix B(row, col, input_B);
+    B.release();
+    Matrix C = A.multiply_async(B);
+    ASSERT_EQUAL(C.cols(), n);
+    ASSERT_EQUAL(C.rows(), n);
+    for (int i = 0; i < n; ++i)
+      for (int j = 0; j < n; ++j) ASSERT_EQUAL(C.at(i, j), output[j * n + i]);
+  }
+
+  {
+    int n = row;
+    Matrix A(col, row, input_A);
+    A.release();
+    Matrix B(row, col, input_B);
+    B.release();
+    Matrix C = A.multiply_async(B, 2);
+    ASSERT_EQUAL(C.cols(), n);
+    ASSERT_EQUAL(C.rows(), n);
+    for (int i = 0; i < n; ++i)
+      for (int j = 0; j < n; ++j) ASSERT_EQUAL(C.at(i, j), output[j * n + i]);
+  }
+
+  {
+    int n = row;
+    Matrix A(col, row, input_A);
+    A.release();
+    Matrix B(row, col, input_B);
+    B.release();
+    Matrix C = A.multiply_async(B, 5);
+    ASSERT_EQUAL(C.cols(), n);
+    ASSERT_EQUAL(C.rows(), n);
+    for (int i = 0; i < n; ++i)
+      for (int j = 0; j < n; ++j) ASSERT_EQUAL(C.at(i, j), output[j * n + i]);
+  }
+}
+
 void Other() {
   {
     int n = 8;
@@ -247,6 +303,7 @@ int main() {
   RUN_TEST(tr, Test_Matrix::Constructor);
   RUN_TEST(tr, Test_Matrix::SumSubtract);
   RUN_TEST(tr, Test_Matrix::Muliply);
+  RUN_TEST(tr, Test_Matrix::Async);
   RUN_TEST(tr, Test_Matrix::Other);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   RUN_TEST(tr, Test_Solver::Direct);
