@@ -29,6 +29,11 @@ int main(int argc, char *argv[]) {
   Solver::Solve(A, B, x);
   double error = Solver::Discrepancy(A, B, x);
 
+  for(int w : {1, 2, 4}){
+    std::cerr << "workers = " << w << '\n';
+    Solver::Async::Discrepancy(A, B, x, w);
+  }
+
   std::cout << "Solution is x = {";
   bool first = true;
   for (int i = 0; i < m; ++i) {

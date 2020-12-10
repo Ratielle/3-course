@@ -66,7 +66,23 @@ void Solver::Solve(const Matrix &A, const Matrix &B, Matrix &x) {
 
 double Solver::Discrepancy(const Matrix &A, const Matrix &B, const Matrix &x) {
   LOG_DURATION("Error calculation time");
-  Matrix result = A * x;
+  Matrix result;
+  {
+    LOG_DURATION("Error multiplication time");
+    result = A * x;
+  }
+  result -= B;
+  return result.norm();
+}
+
+double Solver::Async::Discrepancy(const Matrix &A, const Matrix &B,
+                                  const Matrix &x, int workers) {
+  LOG_DURATION("Error calculation time");
+  Matrix result;
+  {
+    LOG_DURATION("Error async multiplication time");
+    result = A.multiply_async(x, workers);
+  }
   result -= B;
   return result.norm();
 }
