@@ -1,7 +1,9 @@
 #include "matrix.h"
 
 #include <cmath>
+#include <future>
 #include <stdexcept>
+#include <vector>
 
 bool Index::operator==(const Index &other) const {
   return col == other.col && row == other.row;
@@ -72,23 +74,32 @@ int Matrix::rows() const { return _rows; }
 MatrixSize Matrix::size() const { return {_cols, _rows}; }
 
 Matrix Matrix::row(int i) { return submat({0, i}, {_cols - 1, i}); }
+const Matrix Matrix::row(int i) const { return submat({0, i}, {_cols - 1, i}); }
 Matrix Matrix::col(int i) { return submat({i, 0}, {i, _rows - 1}); }
-Matrix Matrix::submat(const Index &i1, const Index &i2) {
+const Matrix Matrix::col(int i) const { return submat({i, 0}, {i, _rows - 1}); }
+
+Matrix Matrix::submat(const Index &i1, const Index &i2, const Matrix &M) {
   if (i1.col < 0 || i2.col < 0 || i1.row < 0 || i2.row < 0)
     throw std::range_error("Matix error # 2");
-  if (i1.col >= _cols || i2.col >= _cols)
+  if (i1.col >= M._cols || i2.col >= M._cols)
     throw std::range_error("Matix error # 3");
-  if (i1.row >= _rows || i2.row >= _rows)
+  if (i1.row >= M._rows || i2.row >= M._rows)
     throw std::range_error("Matix error # 4");
 
   Index left_top = {std::min(i1.col, i2.col), std::min(i1.row, i2.row)};
   Index right_bottom = {std::max(i1.col, i2.col), std::max(i1.row, i2.row)};
-  double *p = _data + left_top.col + left_top.row * _step;
+  double *p = M._data + left_top.col + left_top.row * M._step;
   Matrix s(right_bottom.col - left_top.col + 1,
            right_bottom.row - left_top.row + 1, p);
   s._reference = true;
-  s._step = _cols;
+  s._step = M._cols;
   return s;
+}
+Matrix Matrix::submat(const Index &i1, const Index &i2) {
+  return submat(i1, i2, *this);
+}
+const Matrix Matrix::submat(const Index &i1, const Index &i2) const {
+  return submat(i1, i2, *this);
 }
 
 double &Matrix::at(int col, int row) {
@@ -186,13 +197,18 @@ Matrix &Matrix::operator=(const Matrix &other) {
       pt += _step;
       po += other._step;
     }
+    _cols = other._cols;
+    _rows = other._rows;
+    _step = _cols;
+    _reference = false;
   }
   return *this;
 }
 
 Matrix &Matrix::operator=(Matrix &&other) {
   if (this != &other) {
-    delete _data;
+    if (!_reference)
+      delete _data;
     _cols = other._cols;
     _rows = other._rows;
     _step = other._step;
@@ -213,22 +229,28 @@ Matrix &Matrix::operator*=(double scale) {
   return *this;
 }
 
-Matrix Matrix::operator*(const Matrix &other) const {
-  if (_cols != other._rows) throw std::domain_error("Matix error # 12");
-  Matrix result(other._cols, _rows);
-  double *pt = _data;
-  double *pr = result._data;
-  for (int j = 0; j < _rows; ++j) {
-    for (int i = 0; i < other._cols; ++i) {
-      double *po = other._data + i;
-      for (int k = 0; k < _cols; ++k) {
+void Matrix::multiply(const Matrix &A, const Matrix &B, Matrix &C) {
+  double *pt = A._data;
+  double *pr = C._data;
+  for (int j = 0; j < A._rows; ++j) {
+    for (int i = 0; i < B._cols; ++i) {
+      double *po = B._data + i;
+      for (int k = 0; k < A._cols; ++k) {
         pr[i] += *po * pt[k];
-        po += other._step;
+        po += B._step;
       }
     }
-    pt += _step;
-    pr += result._step;
+    pt += A._step;
+    pr += C._step;
   }
+}
+
+Matrix Matrix::operator*(const Matrix &other) const {
+  if (_cols != other._rows)
+    throw std::domain_error("Matix error # 12");
+  Matrix result(other._cols, _rows);
+  multiply(*this, other, result);
+
   return result;
 }
 
@@ -282,4 +304,36 @@ std::ostream &operator<<(std::ostream &os, const Matrix &M) {
     os << '\n';
   }
   return os;
+}
+
+Matrix Matrix::multiply_async(const Matrix &other, int workers) const {
+  if (workers < 1)
+    throw std::runtime_error("Matix error # 17");
+  if (_cols != other._rows)
+    throw std::domain_error("Matix error # 18");
+  const int N = _rows;
+  const int M = other._cols;
+  const int K = _cols;
+  const int step = std::max(N / workers + N % workers, 1);
+  Matrix result(M, N);
+
+  std::vector<std::future<void>> futures;
+  futures.reserve(workers);
+  int i = 0;
+  for (; i < N - step; i += step) {
+    auto f = [&](int i) {
+      auto subresult = std::move(result.submat({0, i}, {M - 1, i + step - 1}));
+      const auto subthis = submat({0, i}, {K - 1, i + step - 1});
+      multiply(subthis, other, subresult);
+    };
+    futures.push_back(std::async(f, i));
+  }
+
+  auto subresult = std::move(result.submat({0, i}, {M - 1, N - 1}));
+  multiply(submat({0, i}, {K - 1, N - 1}), other, subresult);
+
+  for (const auto &f : futures)
+    f.wait();
+
+  return result;
 }

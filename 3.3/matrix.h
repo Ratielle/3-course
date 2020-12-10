@@ -39,9 +39,12 @@ class Matrix {
   int rows() const;
   MatrixSize size() const;
 
+  const Matrix row(int i) const;
   Matrix row(int i);
+  const Matrix col(int i) const;
   Matrix col(int i);
   Matrix submat(const Index &i1, const Index &i2);
+  const Matrix submat(const Index &i1, const Index &i2) const;
 
   double &at(int col, int row);
   double at(int col, int row) const;
@@ -52,6 +55,7 @@ class Matrix {
   // Operators
   Matrix &operator+=(const Matrix &other);
   Matrix &add_scaled(const Matrix &other, double scale);
+  Matrix multiply_async(const Matrix &other, int workers = 1) const;
   Matrix operator+(const Matrix &other) const;
   Matrix &operator-=(const Matrix &other);
   Matrix operator-(const Matrix &other) const;
@@ -65,6 +69,8 @@ class Matrix {
 
  private:
   Matrix(int cols, int rows, int step);
+  static void multiply(const Matrix &A, const Matrix &B, Matrix &C);
+  static Matrix submat(const Index &i1, const Index &i2, const Matrix &M);
   double *_data;
   int _cols;
   int _rows;
