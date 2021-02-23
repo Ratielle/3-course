@@ -2,27 +2,11 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 # Имя проекта
-project(test)
-
-# Версия стандарта
-# set(CMAKE_CXX_STANDART 17)
-
-# Тип сборки
-# set(CMAKE_BUILD_TYPE Release)
-
-# Флаги компиляции
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-# add_definitions(-O2)
-
-# Подкаталог содержит ещё один CMakeLists.txt
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D")
+project(plotter)
 
 # Собираем все файлы
 file(GLOB SOURCES ./src/*.cpp)
 
-# Добавляем исполняемый файл main
-# Он собирается из 1 файла исходного кода: main.cpp
 add_executable(${PROJECT_NAME} ${SOURCES})
 set(EXECUTABLE_OUTPUT_PATH ../output)
 #====================================================
