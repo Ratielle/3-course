@@ -1,9 +1,0 @@
-[submodule "3.4/.\\3rdparty\\argh"]
-	path = 3.4/.\\3rdparty\\argh
-	url = https://github.com/adishavit/argh.git
-[submodule "3.4/.\\3rdparty\\imgui"]
-	path = 3.4/.\\3rdparty\\imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "3.4/.\\3rdparty\\imgui-sfml"]
-	path = 3.4/.\\3rdparty\\imgui-sfml
-	url = https://github.com/eliasdaler/imgui-sfml.git
