@@ -7,3 +7,15 @@
 [submodule "3.4/3rdparty/imgui-sfml"]
 	path = 3.4/3rdparty/imgui-sfml
 	url = git@github.com:eliasdaler/imgui-sfml.git
+[submodule "3.5/3rdparty/argh"]
+	path = 3.5/3rdparty/argh
+	url = git@github.com:adishavit/argh.git
+[submodule "3.5/3rdparty/imgui"]
+	path = 3.5/3rdparty/imgui
+	url = git@github.com:ocornut/imgui.git
+[submodule "3.5/3rdparty/imgui-sfml"]
+	path = 3.5/3rdparty/imgui-sfml
+	url = git@github.com:eliasdaler/imgui-sfml.git
+[submodule "3.5/3rdparty/SFML"]
+	path = 3.5/3rdparty/SFML
+	url = git@github.com:SFML/SFML.git
