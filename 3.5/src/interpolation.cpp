@@ -98,6 +98,27 @@ Val CubicInterpolation::operator()(Arg x) const
   return std::accumulate(ci.begin(), ci.end(), Val(0), sum);
 }
 
+Interpolation3D::Interpolation3D(std::function<double(Vector2D)> func, const Vector2D &bound_lb, const Vector2D &bound_rt, int M)
+{
+  double step_x = (bound_rt[0] - bound_lb[0]) / (M - 1);
+  double step_y = (bound_rt[1] - bound_lb[1]) / (M - 1);
+
+  double x = bound_lb[0];
+  for (int i = 0; i < M; ++i, x += step_x)
+  {
+    auto data = collect_data([&](double y) { return func({x, y}); }, {bound_lb[1], bound_rt[1]}, M);
+    verticals.emplace(std::make_pair(x, CubicInterpolation(std::move(data), 0, 0)));
+  }
+}
+
+Val Interpolation3D::operator()(Vector2D p) const
+{
+  std::map<Arg, Val> data;
+  for (const auto &[x, f] : verticals)
+    data[x] = f(p[1]);
+  return CubicInterpolation(std::move(data), 0, 0)(p[0]);
+}
+
 std::map<Arg, Val> collect_data(std::function<Val(Arg)> func, std::pair<Arg, Arg> boundaries, int N)
 {
   std::map<Arg, Val> data;

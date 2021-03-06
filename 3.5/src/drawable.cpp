@@ -1,110 +1,81 @@
 #include "drawable.h"
 
-float Drawable::fit(sf::View &view, sf::Window &window) const
+double Object3D::fit(sf::View &view, sf::Window &window) const
 {
-    auto rect = points.getBounds();
-    auto aspect = static_cast<float>(window.getSize().y) / static_cast<float>(window.getSize().x);
+    auto rect = projected.getBounds();
+    auto aspect = static_cast<double>(window.getSize().y) / static_cast<double>(window.getSize().x);
 
     view.setSize(rect.width, rect.width * aspect);
-    view.setCenter(sf::Vector2f(rect.left + 0.5f * rect.width, rect.top + 0.5f * rect.height));
-    return rect.width / static_cast<float>(window.getSize().x);
+    view.setCenter(sf::Vector2f(rect.left + 0.5 * rect.width, rect.top + 0.5 * rect.height));
+    return rect.width / static_cast<double>(window.getSize().x);
 }
 
-std::pair<Arg, Arg> Drawable::hboundaries() const
+Object3D::Object3D(std::function<double(Vector2D)> func, const Vector2D &bound_lb, const Vector2D &bound_rt, int N)
+    : func(func), N(N), data(N * N), projected(sf::PrimitiveType::Points, N * N)
 {
-    auto rect = points.getBounds();
-    return {rect.left, rect.left + rect.width};
+    update_data(bound_lb, bound_rt);
 }
 
-std::pair<Arg, Arg> Drawable::vboundaries() const
+void Object3D::update_data(const Vector2D &bound_lb, const Vector2D &bound_rt)
 {
-    auto rect = points.getBounds();
-    return {rect.top - rect.height, rect.top};
-}
+    double step_x = (bound_rt[0] - bound_lb[0]) / (N - 1);
+    double step_y = (bound_rt[1] - bound_lb[1]) / (N - 1);
 
-Drawable::operator const sf::VertexArray() const
-{
-    return points;
-}
-
-Drawable &Drawable::set_type(sf::PrimitiveType type)
-{
-    points.setPrimitiveType(type);
-    return *this;
-}
-Drawable &Drawable::set_color(sf::Color color)
-{
-    for (int i = 0; i < size(); ++i)
-        points[i].color = color;
-    return *this;
-}
-
-Axis::Axis(sf::Vector2f begin, sf::Vector2f end, const AxisSettings &settings) : Drawable(sf::LineStrip, 5)
-{
-    begin.y = -begin.y;
-    end.y = -end.y;
-    points[0].position = begin;
-    points[1].position = end;
-    auto dir = normalize(end - begin);
-    auto head_end = end - dir * static_cast<float>(settings.head.lenght);
-    dir = {-dir.y, dir.x};
-    dir *= static_cast<float>(settings.head.width * 0.5);
-    points[2].position = head_end + dir;
-    points[3].position = head_end - dir;
-    points[4].position = end;
-
-    set_color(settings.color);
-}
-
-float Axis::norm(const sf::Vector2f &vec) const
-{
-    return std::sqrt(vec.x * vec.x + vec.y * vec.y);
-}
-
-sf::Vector2f Axis::normalize(const sf::Vector2f &vec) const
-{
-    auto len = norm(vec);
-    if (len > 1e-7)
-        return vec * 1.f / norm(vec);
-    else
-        return {0, 0};
-}
-
-Function::Function(std::function<Val(Arg)> func, std::pair<Arg, Arg> boundaries, const FunctionParameters &params)
-    : Drawable(params.type, params.N), func(func)
-{
-    update_points(boundaries);
-    set_color(params.color);
-}
-Function &Function::set_split(int n)
-{
-    if (n + 1 != size())
+    double x = bound_lb[0];
+    for (int i = 0; i < N; ++i, x += step_x)
     {
-        auto boundaries = hboundaries();
-        auto old_size = size();
-        points.resize(n + 1);
-        update_points(boundaries);
-
-        if (old_size < size())
-            set_color(points[0].color);
-    }
-    return *this;
-}
-
-void Function::update_points(std::pair<Arg, Arg> boundaries)
-{
-    auto [x1, x2] = boundaries;
-    auto step = (x2 - x1) / (size() - 1);
-    for (int i = 0; i < size(); ++i)
-    {
-        auto x = x1 + step * i;
-        points[i].position = sf::Vector2f(x, -func(x));
+        double y = bound_lb[1];
+        for (int j = 0; j < N; ++j, y += step_y)
+            data[i * N + j] = {x, y, func({x, y})};
     }
 }
 
-void Function::update_func(std::function<Val(Arg)> new_func)
+void Object3D::update_func(std::function<double(Vector2D)> f)
 {
-    func = new_func;
-    auto boundaries = hboundaries();
-    update_points(boundaries);
+    func = f;
+    auto [from, to] = xy_boundaries();
+    update_data(from, to);
+}
+
+std::pair<Vector2D, Vector2D> Object3D::xy_boundaries() const
+{
+    auto lb = data.front();
+    auto rt = data.back();
+    return {{lb[0], lb[1]}, {rt[0], rt[1]}};
+}
+void Object3D::set_primitive(sf::PrimitiveType type)
+{
+    projected.setPrimitiveType(type);
+}
+
+const sf::VertexArray &Object3D::operator()(const SphericalCoords &cam_coords, bool force) const
+{
+    auto [r, fi, th] = cam_coords.v;
+    if (force || (angles - Vector2D({fi, th})).norm() > 1e-6)
+    {
+        angles = {fi, th};
+        Vector3D y_axis = {-std::cos(fi) * std::cos(th), -std::sin(fi) * std::cos(th), std::sin(th)};
+        Vector3D x_axis = {-std::sin(fi), std::cos(fi), 0};
+        Vector3D dir = {-std::cos(fi) * std::sin(th), -std::sin(fi) * std::sin(th), -std::cos(th)};
+        Vector3D cam = Vector3D::scale(dir, -r);
+        auto project = [&](const Vector3D &p) {
+            auto v = cam - p;
+            auto l = Vector3D::scale(v, cam.norm() / Vector3D::dot(v, dir)) + cam;
+            return sf::Vector2f(Vector3D::dot(l, x_axis), Vector3D::dot(l, y_axis));
+        };
+        for (int i = 0; i < N * N; ++i)
+            projected[i].position = project(data[i]);
+    }
+    return projected;
+}
+
+void Object3D::set_color(sf::Color color)
+{
+    for (int i = 0; i < N * N; ++i)
+        projected[i].color = color;
+}
+
+sf::Color Object3D::color() const
+{
+    return projected[0].color;
 }

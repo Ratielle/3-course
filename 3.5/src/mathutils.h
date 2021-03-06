@@ -7,14 +7,18 @@ struct Vector
 {
     std::array<T, N> v;
 
-    Vector &operator+=(const Vector<T> &other)
+    T operator[](int i) const { return v[i]; }
+
+    T &operator[](int i) { return v[i]; }
+
+    Vector &operator+=(const Vector &other)
     {
         for (int i = 0; i < N; ++i)
             v[i] += other.v[i];
         return *this;
     }
 
-    Vector &operator-=(const Vector<T> &other)
+    Vector &operator-=(const Vector &other)
     {
         for (int i = 0; i < N; ++i)
             v[i] -= other.v[i];
@@ -42,7 +46,7 @@ struct Vector
         scale(T(1) / norm());
     }
 
-    Vector &scale(const Vector<T> &other)
+    Vector &scale(const Vector &other)
     {
         for (int i = 0; i < N; ++i)
             v[i] *= other.v[i];
@@ -96,3 +100,6 @@ Vector<T, N> operator-(const Vector<T, N> &a, const Vector<T, N> &b)
     Vector<T, N> out = a;
     return out -= b;
 }
+
+using Vector3D = Vector<double, 3>;
+using Vector2D = Vector<double, 2>;

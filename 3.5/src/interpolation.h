@@ -1,9 +1,14 @@
 #pragma once
-#include "types.h"
+
+#include "mathutils.h"
 
 #include <array>
 #include <functional>
 #include <map>
+
+using Val = double;
+using Arg = double;
+using Coef = double;
 
 class LinearInterpolation
 {
@@ -25,10 +30,19 @@ private:
   std::map<Arg, std::array<Coef, 4>> coefs;
 };
 
+class Interpolation3D
+{
+public:
+  Interpolation3D(std::function<double(Vector2D)> func, const Vector2D &bound_lb, const Vector2D &bound_rt, int M);
+  Val operator()(Vector2D x) const;
+private:
+  std::map<Arg, CubicInterpolation> verticals;
+};
+
 std::map<Arg, Val> collect_data(std::function<Val(Arg)> func, std::pair<Arg, Arg> boundaries, int N);
 
 std::function<Val(Arg)> create_linear(std::function<Val(Arg)> func, std::pair<Arg, Arg> boundaries, int N);
-std::function<Val(Arg)> create_cubic(std::function<Val(Arg)> func, std::pair<Arg, Arg> boundaries, int N, Val d2_left, Val d2_right);
+std::function<Val(Arg)> create_cubic(std::function<Val(Arg)> func, std::pair<Arg, Arg> boundaries, int N, Val d2_left = 0, Val d2_right = 0);
 
 template <class Callable>
 std::function<Val(Arg)> any_to_func(Callable &&c)
